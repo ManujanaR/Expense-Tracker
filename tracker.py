@@ -14,6 +14,8 @@ class ExpenseTracker:
         # "a" (append) mode eken open karanne parana rows makannathuwa agata add karanna
         if amount <= 0:
             raise ValueError("Amount must be greater than 0.")
+        if not note or not note.strip():
+            raise ValueError("Note cannot be empty")
         with self.csv_path.open("a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([amount, note])  # [amount, note] row ekak liyanawa
 
