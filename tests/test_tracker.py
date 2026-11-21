@@ -26,7 +26,13 @@ class TestExpenseTracker(unittest.TestCase):
 
                 self.assertEqual(total, 700.0)
 
-
+    def test_add_expense_negative_amount_raises_error(self):
+          with tempfile.TemporaryDirectory() as tmp_dir:
+                csv_path = Path(tmp_dir) / "expenses.csv"
+                tracker = ExpenseTracker(csv_path)
+                
+                with self.assertRaises(ValueError):
+                    tracker.add_expense(-50.0, "lunch")
           
 if __name__ == "__main__":
     unittest.main()

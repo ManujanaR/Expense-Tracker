@@ -12,6 +12,8 @@ class ExpenseTracker:
 
     def add_expense(self, amount: float, note: str):
         # "a" (append) mode eken open karanne parana rows makannathuwa agata add karanna
+        if amount <= 0:
+            raise ValueError("Amount must be greater than 0.")
         with self.csv_path.open("a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow([amount, note])  # [amount, note] row ekak liyanawa
 
