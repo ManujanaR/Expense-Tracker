@@ -1,8 +1,11 @@
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from tracker import ExpenseTracker
+from tracker import ExpenseTracker, main
 
 class TestExpenseTracker(unittest.TestCase):
     def test_get_total_returns_zero_when_csv_does_not_exist(self):
@@ -76,6 +79,33 @@ class TestExpenseTracker(unittest.TestCase):
 
                 self.assertEqual(expenses, [{"amount": 450.0, "note": "lunch"}, {"amount": 250.0, "note": "tea"}])
 
-          
+    def test_cli_list_no_expenses_prints_message(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path = Path(tmp_dir) / "expenses.csv"
+            buf = io.StringIO()
+
+            with patch("sys.argv", ["tracker.py", "list"]), \
+                patch("tracker.ExpenseTracker", return_value=ExpenseTracker(csv_path)), \
+                redirect_stdout(buf):
+                main()
+
+            self.assertIn("No expenses found.", buf.getvalue())
+
+    def test_cli_list_prints_saved_expenses(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path = Path(tmp_dir) / "expenses.csv"
+            tracker = ExpenseTracker(csv_path)
+            tracker.add_expense(450.0, "lunch")
+            tracker.add_expense(250.0, "tea")
+
+            buf = io.StringIO()
+            with patch("sys.argv", ["tracker.py", "list"]), \
+                patch("tracker.ExpenseTracker", return_value=tracker), \
+                redirect_stdout(buf):
+                main()
+
+            output = buf.getvalue()
+            self.assertIn("450.0 - lunch", output)
+            self.assertIn("250.0 - tea", output)    
 if __name__ == "__main__":
     unittest.main()
