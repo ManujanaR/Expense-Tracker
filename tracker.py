@@ -61,8 +61,10 @@ def main():
     add_parser.add_argument("amount", type=float, help="Expense amount")
     add_parser.add_argument("note", nargs="+", help="Expense note")
 
+
     # `total` command eka hadanawa
     subparsers.add_parser("total", help="Show total expenses")
+    subparsers.add_parser("list", help="List all saved expenses")
 
     # Terminal eken dunna arguments parse karala tracker object eka hadanawa
     args = parser.parse_args()
@@ -75,6 +77,13 @@ def main():
         print("Added expense.")
     elif args.command == "total":
         print(tracker.get_total())
+    elif args.command == "list":
+        expenses = tracker.get_expenses()
+        if not expenses:
+            print("No expenses found.")
+        else:
+            for expense in expenses:
+                print(f"{expense['amount']} - {expense['note']}")
 
 
 # File eka kelinma run kaloth witharak main() call wenawa (import kaloth auto run wenne na)
