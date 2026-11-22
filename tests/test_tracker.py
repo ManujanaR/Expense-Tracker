@@ -55,8 +55,26 @@ class TestExpenseTracker(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     tracker.get_total()
 
+    def test_get_expenses_returns_empty_list_when_missing(self):
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                csv_path = Path(tmp_dir) / "expenses.csv"
+                tracker = ExpenseTracker(csv_path)
 
+                expenses = tracker.get_expenses()
+
+                self.assertEqual(expenses, [])
+
+    def test_get_expenses_returns_saved_expenses(self):
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                csv_path = Path(tmp_dir) / "expenses.csv"
+                tracker = ExpenseTracker(csv_path)
               
+                tracker.add_expense(450.0, "lunch")
+                tracker.add_expense(250.0, "tea")
+
+                expenses = tracker.get_expenses()
+
+                self.assertEqual(expenses, [{"amount": 450.0, "note": "lunch"}, {"amount": 250.0, "note": "tea"}])
 
           
 if __name__ == "__main__":

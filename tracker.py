@@ -34,6 +34,21 @@ class ExpenseTracker:
 
         return total  # Loop eka iwara wunata passe thamai total return karanne
 
+    def get_expenses(self) -> list[dict]:
+        if not self.csv_path.exists():
+            return []
+
+        expenses: list[dict] = []
+        with self.csv_path.open("r", newline="", encoding="utf-8") as f:
+            for row in csv.reader(f):
+                if len(row) >= 2:
+                    expenses.append({
+                        "amount": float(row[0]),
+                        "note": row[1],
+                    })
+
+        return expenses
+
 
 def main():
     # Main CLI parser eka hadanawa
