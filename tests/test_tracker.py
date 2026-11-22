@@ -41,9 +41,22 @@ class TestExpenseTracker(unittest.TestCase):
 
                 with self.assertRaises(ValueError):
                     tracker.add_expense(450.0, "")
-                    
+
                 with self.assertRaises(ValueError):
-                    tracker.add_expense(250.0, "  ")                        
+                    tracker.add_expense(250.0, "  ")         
+
+    def test_get_total_corrupted_csv_raises_error(self):
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                csv_path = Path(tmp_dir) / "expenses.csv"
+                tracker = ExpenseTracker(csv_path)
+
+                csv_path.write_text("invalid_amount,lunch\n", encoding="utf-8")
+
+                with self.assertRaises(ValueError):
+                    tracker.get_total()
+
+
+              
 
           
 if __name__ == "__main__":
