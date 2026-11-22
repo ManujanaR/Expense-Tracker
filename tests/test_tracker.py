@@ -107,5 +107,33 @@ class TestExpenseTracker(unittest.TestCase):
             output = buf.getvalue()
             self.assertIn("450.0 - lunch", output)
             self.assertIn("250.0 - tea", output)    
+    def test_cli_add_command_saves_expense_and_prints_message(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path = Path(tmp_dir) / "expenses.csv"
+            tracker = ExpenseTracker(csv_path)
+            buf = io.StringIO()
+
+            with patch("sys.argv", ["tracker.py", "add", "450.0", "lunch"]), \
+                 patch("tracker.ExpenseTracker", return_value=tracker), \
+                 redirect_stdout(buf):
+                main()
+
+            self.assertIn("Added expense.", buf.getvalue())
+            self.assertEqual(tracker.get_expenses(), [{"amount": 450.0, "note": "lunch"}])
+
+    def test_cli_total_command_prints_total(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path = Path(tmp_dir) / "expenses.csv"
+            tracker = ExpenseTracker(csv_path)
+            tracker.add_expense(450.0, "lunch")
+            tracker.add_expense(250.0, "tea")
+
+            buf = io.StringIO()
+            with patch("sys.argv", ["tracker.py", "total"]), \
+                 patch("tracker.ExpenseTracker", return_value=tracker), \
+                 redirect_stdout(buf):
+                main()
+
+        self.assertIn("700.0", buf.getvalue())
 if __name__ == "__main__":
     unittest.main()
