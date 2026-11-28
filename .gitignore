@@ -1,5 +1,23 @@
+# Python bytecode and test output
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Local Python environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local configuration and editor settings
+.env
+.env.*
+!.env.example
 .vscode/
-expenses.csv
+.DS_Store
+
+# Local expense-tracker data
+*.csv
+!*.example.csv

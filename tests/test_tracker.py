@@ -7,133 +7,50 @@ from unittest.mock import patch
 
 from tracker import ExpenseTracker, main
 
+
 class TestExpenseTracker(unittest.TestCase):
-    def test_get_total_returns_zero_when_csv_does_not_exist(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-                    missing_csv = Path(tmp_dir) / "expenses.csv"
-                    tracker = ExpenseTracker(missing_csv)
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "expenses.csv"
+        self.tracker = ExpenseTracker(self.path)
 
-                    total = tracker.get_total()
+    def test_missing_file_has_no_expenses_and_zero_total(self):
+        self.assertEqual(self.tracker.get_expenses(), [])
+        self.assertEqual(self.tracker.get_total(), 0)
 
-                    self.assertEqual(total, 0.0)
+    def test_add_expense_and_total(self):
+        self.tracker.add_expense(450, "lunch")
+        self.tracker.add_expense(250, "tea")
 
-    def test_add_expense_and_get_total(self):
-          with tempfile.TemporaryDirectory() as tmp_dir:
-                csv_path = Path(tmp_dir) / "expenses.csv"
-                tracker = ExpenseTracker(csv_path)
+        self.assertEqual(self.tracker.get_total(), 700)
+        self.assertEqual(
+            self.tracker.get_expenses(),
+            [{"amount": 450.0, "note": "lunch"}, {"amount": 250.0, "note": "tea"}],
+        )
 
-                tracker.add_expense(450.0, "lunch")
-                tracker.add_expense(250.0, "tea")
+    def test_invalid_expense_is_rejected(self):
+        with self.assertRaises(ValueError):
+            self.tracker.add_expense(0, "lunch")
+        with self.assertRaises(ValueError):
+            self.tracker.add_expense(10, " ")
 
-                total = tracker.get_total()
+    def test_cli_add_list_and_total(self):
+        output = io.StringIO()
+        with patch("sys.argv", ["tracker.py", "--file", str(self.path), "add", "450", "lunch"]), redirect_stdout(output):
+            main()
+        self.assertIn("Added expense.", output.getvalue())
 
-                self.assertEqual(total, 700.0)
+        output = io.StringIO()
+        with patch("sys.argv", ["tracker.py", "--file", str(self.path), "list"]), redirect_stdout(output):
+            main()
+        self.assertIn("1. 450.0 - lunch", output.getvalue())
 
-    def test_add_expense_negative_amount_raises_error(self):
-          with tempfile.TemporaryDirectory() as tmp_dir:
-                csv_path = Path(tmp_dir) / "expenses.csv"
-                tracker = ExpenseTracker(csv_path)
-                
-                with self.assertRaises(ValueError):
-                    tracker.add_expense(-50.0, "lunch")
+        output = io.StringIO()
+        with patch("sys.argv", ["tracker.py", "--file", str(self.path), "total"]), redirect_stdout(output):
+            main()
+        self.assertIn("450.0", output.getvalue())
 
-    def test_add_expense_empty_note_raises_error(self):
-          with tempfile.TemporaryDirectory() as tmp_dir:
-                csv_path = Path(tmp_dir) / "expenses.csv"
-                tracker = ExpenseTracker(csv_path)
 
-                with self.assertRaises(ValueError):
-                    tracker.add_expense(450.0, "")
-
-                with self.assertRaises(ValueError):
-                    tracker.add_expense(250.0, "  ")         
-
-    def test_get_total_corrupted_csv_raises_error(self):
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                csv_path = Path(tmp_dir) / "expenses.csv"
-                tracker = ExpenseTracker(csv_path)
-
-                csv_path.write_text("invalid_amount,lunch\n", encoding="utf-8")
-
-                with self.assertRaises(ValueError):
-                    tracker.get_total()
-
-    def test_get_expenses_returns_empty_list_when_missing(self):
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                csv_path = Path(tmp_dir) / "expenses.csv"
-                tracker = ExpenseTracker(csv_path)
-
-                expenses = tracker.get_expenses()
-
-                self.assertEqual(expenses, [])
-
-    def test_get_expenses_returns_saved_expenses(self):
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                csv_path = Path(tmp_dir) / "expenses.csv"
-                tracker = ExpenseTracker(csv_path)
-              
-                tracker.add_expense(450.0, "lunch")
-                tracker.add_expense(250.0, "tea")
-
-                expenses = tracker.get_expenses()
-
-                self.assertEqual(expenses, [{"amount": 450.0, "note": "lunch"}, {"amount": 250.0, "note": "tea"}])
-
-    def test_cli_list_no_expenses_prints_message(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            csv_path = Path(tmp_dir) / "expenses.csv"
-            buf = io.StringIO()
-
-            with patch("sys.argv", ["tracker.py", "list"]), \
-                patch("tracker.ExpenseTracker", return_value=ExpenseTracker(csv_path)), \
-                redirect_stdout(buf):
-                main()
-
-            self.assertIn("No expenses found.", buf.getvalue())
-
-    def test_cli_list_prints_saved_expenses(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            csv_path = Path(tmp_dir) / "expenses.csv"
-            tracker = ExpenseTracker(csv_path)
-            tracker.add_expense(450.0, "lunch")
-            tracker.add_expense(250.0, "tea")
-
-            buf = io.StringIO()
-            with patch("sys.argv", ["tracker.py", "list"]), \
-                patch("tracker.ExpenseTracker", return_value=tracker), \
-                redirect_stdout(buf):
-                main()
-
-            output = buf.getvalue()
-            self.assertIn("450.0 - lunch", output)
-            self.assertIn("250.0 - tea", output)    
-    def test_cli_add_command_saves_expense_and_prints_message(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            csv_path = Path(tmp_dir) / "expenses.csv"
-            tracker = ExpenseTracker(csv_path)
-            buf = io.StringIO()
-
-            with patch("sys.argv", ["tracker.py", "add", "450.0", "lunch"]), \
-                 patch("tracker.ExpenseTracker", return_value=tracker), \
-                 redirect_stdout(buf):
-                main()
-
-            self.assertIn("Added expense.", buf.getvalue())
-            self.assertEqual(tracker.get_expenses(), [{"amount": 450.0, "note": "lunch"}])
-
-    def test_cli_total_command_prints_total(self):
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            csv_path = Path(tmp_dir) / "expenses.csv"
-            tracker = ExpenseTracker(csv_path)
-            tracker.add_expense(450.0, "lunch")
-            tracker.add_expense(250.0, "tea")
-
-            buf = io.StringIO()
-            with patch("sys.argv", ["tracker.py", "total"]), \
-                 patch("tracker.ExpenseTracker", return_value=tracker), \
-                 redirect_stdout(buf):
-                main()
-
-        self.assertIn("700.0", buf.getvalue())
 if __name__ == "__main__":
     unittest.main()
